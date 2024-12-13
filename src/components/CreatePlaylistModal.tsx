@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase/firebaseConfig";
+import useAuth from "../hooks/useAuth";
+import { toast } from "react-hot-toast";
 
 interface CreatePlaylistModalProps {
   isOpen: boolean;
@@ -15,12 +19,26 @@ export default function CreatePlaylistModal({
   onCreatePlaylist,
 }: CreatePlaylistModalProps) {
   const [playlistName, setPlaylistName] = useState("");
+  const { user } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (playlistName.trim()) {
-      onCreatePlaylist(playlistName.trim());
-      setPlaylistName("");
+    if (playlistName.trim() && user) {
+      const toastId = toast.loading("Creating playlist...");
+      try {
+        const playlistsRef = collection(db, "users", user.uid, "playlists");
+        await addDoc(playlistsRef, {
+          name: playlistName.trim(),
+          createdAt: serverTimestamp(),
+          songs: 0,
+        });
+        toast.success("Playlist created successfully!", { id: toastId });
+        onCreatePlaylist(playlistName.trim());
+        setPlaylistName("");
+      } catch (error) {
+        console.error("Error creating playlist:", error);
+        toast.error("Failed to create playlist", { id: toastId });
+      }
     }
   };
 

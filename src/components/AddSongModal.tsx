@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-hot-toast";
 
 interface AddSongModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddSong: (song: { title: string; artist: string }) => void;
+  onAddSong: (song: { title: string; artist: string; url: string }) => void;
 }
 
 export default function AddSongModal({
@@ -16,13 +17,22 @@ export default function AddSongModal({
 }: AddSongModalProps) {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
+  const [url, setUrl] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (title.trim() && artist.trim()) {
-      onAddSong({ title: title.trim(), artist: artist.trim() });
+    if (title.trim() && artist.trim() && url.trim()) {
+      onAddSong({
+        title: title.trim(),
+        artist: artist.trim(),
+        url: url.trim(),
+      });
       setTitle("");
       setArtist("");
+      setUrl("");
+      toast.success("Song added successfully!");
+    } else {
+      toast.error("Please fill in all fields");
     }
   };
 
@@ -73,6 +83,22 @@ export default function AddSongModal({
                   id="artist"
                   value={artist}
                   onChange={(e) => setArtist(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="url"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Audio URL
+                </label>
+                <input
+                  type="url"
+                  id="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50"
                   required
                 />

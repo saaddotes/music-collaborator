@@ -1,14 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   doc,
+  getDoc,
   collection,
   addDoc,
   onSnapshot,
   updateDoc,
   deleteDoc,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import useAuth from "@/hooks/useAuth";
@@ -16,14 +21,15 @@ import Header from "@/components/Header";
 import AddSongModal from "@/components/AddSongModal";
 import AddContributorModal from "@/components/AddContributorModal";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, SkipForward, SkipBack, Trash2 } from "lucide-react";
+import { Play, Pause, SkipForward, SkipBack, Trash2, Home } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 interface Song {
   id: string;
   title: string;
   artist: string;
   addedBy: string;
-  url?: string;
+  url: string;
 }
 
 interface Contributor {
@@ -33,6 +39,7 @@ interface Contributor {
 
 export default function PlaylistDetail() {
   const { id } = useParams();
+  const router = useRouter();
   const { user } = useAuth();
   const [playlist, setPlaylist] = useState<any>(null);
   const [songs, setSongs] = useState<Song[]>([]);
@@ -50,6 +57,9 @@ export default function PlaylistDetail() {
       const unsubscribePlaylist = onSnapshot(playlistRef, (doc) => {
         if (doc.exists()) {
           setPlaylist({ id: doc.id, ...doc.data() });
+        } else {
+          toast.error("Playlist not found");
+          router.push("/");
         }
       });
 
@@ -92,50 +102,80 @@ export default function PlaylistDetail() {
         unsubscribeContributors();
       };
     }
-  }, [user, id]);
+  }, [user, id, router]);
 
   const handleAddSong = async (song: {
     title: string;
     artist: string;
-    url?: string;
+    url: string;
   }) => {
     if (user && id) {
-      const songsRef = collection(
-        db,
-        "users",
-        user.uid,
-        "playlists",
-        id as string,
-        "songs"
-      );
-      await addDoc(songsRef, {
-        ...song,
-        addedBy: user.email,
-        createdAt: new Date(),
-      });
-      const playlistRef = doc(db, "users", user.uid, "playlists", id as string);
-      await updateDoc(playlistRef, {
-        songs: songs.length + 1,
-      });
-      setIsAddSongModalOpen(false);
+      const toastId = toast.loading("Adding song...");
+      try {
+        const songsRef = collection(
+          db,
+          "users",
+          user.uid,
+          "playlists",
+          id as string,
+          "songs"
+        );
+        await addDoc(songsRef, {
+          ...song,
+          addedBy: user.email,
+          createdAt: new Date(),
+        });
+        const playlistRef = doc(
+          db,
+          "users",
+          user.uid,
+          "playlists",
+          id as string
+        );
+        await updateDoc(playlistRef, {
+          songs: songs.length + 1,
+        });
+        setIsAddSongModalOpen(false);
+        toast.success("Song added successfully!", { id: toastId });
+      } catch (error) {
+        console.error("Error adding song:", error);
+        toast.error("Failed to add song", { id: toastId });
+      }
     }
   };
 
   const handleAddContributor = async (email: string) => {
     if (user && id) {
-      const contributorsRef = collection(
-        db,
-        "users",
-        user.uid,
-        "playlists",
-        id as string,
-        "contributors"
-      );
-      await addDoc(contributorsRef, {
-        email,
-        addedAt: new Date(),
-      });
-      setIsAddContributorModalOpen(false);
+      const toastId = toast.loading("Adding contributor...");
+      try {
+        // Check if the user exists
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", email));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          toast.error("User not found", { id: toastId });
+          return;
+        }
+
+        const contributorsRef = collection(
+          db,
+          "users",
+          user.uid,
+          "playlists",
+          id as string,
+          "contributors"
+        );
+        await addDoc(contributorsRef, {
+          email,
+          addedAt: new Date(),
+        });
+        setIsAddContributorModalOpen(false);
+        toast.success("Contributor added successfully!", { id: toastId });
+      } catch (error) {
+        console.error("Error adding contributor:", error);
+        toast.error("Failed to add contributor", { id: toastId });
+      }
     }
   };
 
@@ -154,7 +194,7 @@ export default function PlaylistDetail() {
     setCurrentSong(song);
     setIsPlaying(true);
     if (audioRef.current) {
-      audioRef.current.src = song.url || "";
+      audioRef.current.src = song.url;
       audioRef.current.play();
     }
   };
@@ -182,27 +222,40 @@ export default function PlaylistDetail() {
 
   const handleDeleteSong = async (songId: string) => {
     if (user && id) {
-      const songRef = doc(
-        db,
-        "users",
-        user.uid,
-        "playlists",
-        id as string,
-        "songs",
-        songId
-      );
-      await deleteDoc(songRef);
-      const playlistRef = doc(db, "users", user.uid, "playlists", id as string);
-      await updateDoc(playlistRef, {
-        songs: songs.length - 1,
-      });
-      if (currentSong && currentSong.id === songId) {
-        setCurrentSong(null);
-        setIsPlaying(false);
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.src = "";
+      const toastId = toast.loading("Deleting song...");
+      try {
+        const songRef = doc(
+          db,
+          "users",
+          user.uid,
+          "playlists",
+          id as string,
+          "songs",
+          songId
+        );
+        await deleteDoc(songRef);
+        const playlistRef = doc(
+          db,
+          "users",
+          user.uid,
+          "playlists",
+          id as string
+        );
+        await updateDoc(playlistRef, {
+          songs: songs.length - 1,
+        });
+        if (currentSong && currentSong.id === songId) {
+          setCurrentSong(null);
+          setIsPlaying(false);
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.src = "";
+          }
         }
+        toast.success("Song deleted successfully!", { id: toastId });
+      } catch (error) {
+        console.error("Error deleting song:", error);
+        toast.error("Failed to delete song", { id: toastId });
       }
     }
   };
@@ -215,13 +268,22 @@ export default function PlaylistDetail() {
     <div className="min-h-screen bg-gradient-to-br from-purple-400 to-indigo-600">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <motion.h1
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-4xl font-bold text-white mb-6"
+          className="flex justify-between items-center mb-6"
         >
-          {playlist.name}
-        </motion.h1>
+          <h1 className="text-4xl font-bold text-white">{playlist.name}</h1>
+          <Link href="/">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-100 transition duration-300 flex items-center"
+            >
+              <Home className="mr-2" /> Back to Home
+            </motion.button>
+          </Link>
+        </motion.div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <motion.section
             initial={{ opacity: 0, x: -20 }}

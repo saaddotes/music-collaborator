@@ -17,6 +17,7 @@ import Playlist from "@/components/Playlist";
 import CreatePlaylistModal from "@/components/CreatePlaylistModal";
 import SearchBar from "@/components/SearchBar";
 import RecentlyPlayed from "@/components/RecentlyPlayed";
+import { Toaster } from "react-hot-toast";
 
 interface PlaylistData {
   id: string;
@@ -80,6 +81,29 @@ export default function Home() {
       playlist.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredPlaylists(filtered);
+  };
+
+  const handleCreatePlaylist = async (name: string) => {
+    // This function is now handled in the CreatePlaylistModal component
+    setIsCreateModalOpen(false);
+    // Refresh the playlists
+    if (user) {
+      const playlistsCollection = collection(
+        db,
+        "users",
+        user.uid,
+        "playlists"
+      );
+      const playlistsSnapshot = await getDocs(
+        query(playlistsCollection, orderBy("createdAt", "desc"))
+      );
+      const playlistsData = playlistsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as PlaylistData[];
+      setPlaylists(playlistsData);
+      setFilteredPlaylists(playlistsData);
+    }
   };
 
   if (loading) {
@@ -171,11 +195,9 @@ export default function Home() {
       <CreatePlaylistModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onCreatePlaylist={async (name) => {
-          // Implementation for creating a new playlist
-          setIsCreateModalOpen(false);
-        }}
+        onCreatePlaylist={handleCreatePlaylist}
       />
+      <Toaster />
     </div>
   );
 }
