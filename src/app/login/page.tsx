@@ -17,7 +17,7 @@ export default function Login() {
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/");
     } catch (error) {
-      setError("Failed to log in. Please check your credentials.");
+      setError("Failed to log in. Please check your credentials." + error);
     }
   };
 

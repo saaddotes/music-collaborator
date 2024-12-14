@@ -35,42 +35,42 @@ export default function Home() {
   const [recentlyPlayed, setRecentlyPlayed] = useState<PlaylistData[]>([]);
   const { user, loading } = useAuth();
 
+  const fetchPlaylists = async () => {
+    console.log("fetching home");
+
+    if (user) {
+      const playlistsCollection = collection(db, "playlists");
+      const playlistsSnapshot = await getDocs(
+        query(
+          playlistsCollection,
+          where("contributors", "array-contains", user.email),
+          orderBy("createdAt", "desc")
+        )
+      );
+      const playlistsData = playlistsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as PlaylistData[];
+      setPlaylists(playlistsData);
+      setFilteredPlaylists(playlistsData);
+
+      // Fetch recently played playlists
+      const recentlyPlayedSnapshot = await getDocs(
+        query(
+          playlistsCollection,
+          where("lastPlayed", "!=", null),
+          orderBy("lastPlayed", "desc"),
+          limit(5)
+        )
+      );
+      const recentlyPlayedData = recentlyPlayedSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as PlaylistData[];
+      setRecentlyPlayed(recentlyPlayedData);
+    }
+  };
   useEffect(() => {
-    const fetchPlaylists = async () => {
-      if (user) {
-        const playlistsCollection = collection(
-          db,
-          "users",
-          user.uid,
-          "playlists"
-        );
-        const playlistsSnapshot = await getDocs(
-          query(playlistsCollection, orderBy("createdAt", "desc"))
-        );
-        const playlistsData = playlistsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as PlaylistData[];
-        setPlaylists(playlistsData);
-        setFilteredPlaylists(playlistsData);
-
-        // Fetch recently played playlists
-        const recentlyPlayedSnapshot = await getDocs(
-          query(
-            playlistsCollection,
-            where("lastPlayed", "!=", null),
-            orderBy("lastPlayed", "desc"),
-            limit(5)
-          )
-        );
-        const recentlyPlayedData = recentlyPlayedSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as PlaylistData[];
-        setRecentlyPlayed(recentlyPlayedData);
-      }
-    };
-
     if (!loading) {
       fetchPlaylists();
     }
@@ -86,21 +86,25 @@ export default function Home() {
   const handleCreatePlaylist = async (name: string) => {
     // This function is now handled in the CreatePlaylistModal component
     setIsCreateModalOpen(false);
+    console.log(name);
+
     // Refresh the playlists
     if (user) {
-      const playlistsCollection = collection(
-        db,
-        "users",
-        user.uid,
-        "playlists"
-      );
+      const playlistsCollection = collection(db, "playlists");
       const playlistsSnapshot = await getDocs(
-        query(playlistsCollection, orderBy("createdAt", "desc"))
+        query(
+          playlistsCollection,
+          where("contributors", "array-contains", user.email),
+          orderBy("createdAt", "desc")
+        )
       );
       const playlistsData = playlistsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as PlaylistData[];
+
+      console.log("playlistsData", playlistsData);
+
       setPlaylists(playlistsData);
       setFilteredPlaylists(playlistsData);
     }

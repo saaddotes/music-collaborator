@@ -26,19 +26,25 @@ export default function CreatePlaylistModal({
     if (playlistName.trim() && user) {
       const toastId = toast.loading("Creating playlist...");
       try {
-        const playlistsRef = collection(db, "users", user.uid, "playlists");
+        const playlistsRef = collection(db, "playlists");
         await addDoc(playlistsRef, {
           name: playlistName.trim(),
           createdAt: serverTimestamp(),
           songs: 0,
+          createdBy: user.email,
+          contributors: [user.email],
         });
+
         toast.success("Playlist created successfully!", { id: toastId });
         onCreatePlaylist(playlistName.trim());
         setPlaylistName("");
+        onClose();
       } catch (error) {
         console.error("Error creating playlist:", error);
         toast.error("Failed to create playlist", { id: toastId });
       }
+    } else {
+      toast.error("Playlist name cannot be empty.");
     }
   };
 

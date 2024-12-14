@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   doc,
-  getDoc,
   collection,
   addDoc,
   onSnapshot,
@@ -14,6 +13,7 @@ import {
   query,
   where,
   getDocs,
+  arrayUnion,
 } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import useAuth from "@/hooks/useAuth";
@@ -36,13 +36,18 @@ interface Contributor {
   id: string;
   email: string;
 }
-
+interface PlaylistData {
+  id: string;
+  name: string;
+  songs: number;
+  lastPlayed?: Date;
+}
 export default function PlaylistDetail() {
   const { id } = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const [playlist, setPlaylist] = useState<any>(null);
-  const [songs, setSongs] = useState<Song[]>([]);
+  const [playlist, setPlaylist] = useState<PlaylistData | null>(null);
+  const [songs, setSongs] = useState<Song[] | []>([]);
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [isAddSongModalOpen, setIsAddSongModalOpen] = useState(false);
   const [isAddContributorModalOpen, setIsAddContributorModalOpen] =
@@ -53,24 +58,17 @@ export default function PlaylistDetail() {
 
   useEffect(() => {
     if (user && id) {
-      const playlistRef = doc(db, "users", user.uid, "playlists", id as string);
+      const playlistRef = doc(db, "playlists", id as string);
       const unsubscribePlaylist = onSnapshot(playlistRef, (doc) => {
         if (doc.exists()) {
-          setPlaylist({ id: doc.id, ...doc.data() });
+          setPlaylist({ id: doc.id, ...doc.data() } as PlaylistData);
         } else {
           toast.error("Playlist not found");
           router.push("/");
         }
       });
 
-      const songsRef = collection(
-        db,
-        "users",
-        user.uid,
-        "playlists",
-        id as string,
-        "songs"
-      );
+      const songsRef = collection(db, "playlists", id as string, "songs");
       const unsubscribeSongs = onSnapshot(songsRef, (snapshot) => {
         const songsData = snapshot.docs.map(
           (doc) => ({ id: doc.id, ...doc.data() } as Song)
@@ -78,23 +76,18 @@ export default function PlaylistDetail() {
         setSongs(songsData);
       });
 
-      const contributorsRef = collection(
-        db,
-        "users",
-        user.uid,
-        "playlists",
-        id as string,
-        "contributors"
-      );
-      const unsubscribeContributors = onSnapshot(
-        contributorsRef,
-        (snapshot) => {
-          const contributorsData = snapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() } as Contributor)
+      const contributorsRef = doc(db, "playlists", id as string);
+      const unsubscribeContributors = onSnapshot(contributorsRef, (doc) => {
+        if (doc.exists()) {
+          const contributors = doc.data().contributors || [];
+          setContributors(
+            contributors.map((email: string, index: number) => ({
+              id: index,
+              email,
+            }))
           );
-          setContributors(contributorsData);
         }
-      );
+      });
 
       return () => {
         unsubscribePlaylist();
@@ -112,26 +105,13 @@ export default function PlaylistDetail() {
     if (user && id) {
       const toastId = toast.loading("Adding song...");
       try {
-        const songsRef = collection(
-          db,
-          "users",
-          user.uid,
-          "playlists",
-          id as string,
-          "songs"
-        );
+        const songsRef = collection(db, "playlists", id as string, "songs");
         await addDoc(songsRef, {
           ...song,
           addedBy: user.email,
           createdAt: new Date(),
         });
-        const playlistRef = doc(
-          db,
-          "users",
-          user.uid,
-          "playlists",
-          id as string
-        );
+        const playlistRef = doc(db, "playlists", id as string);
         await updateDoc(playlistRef, {
           songs: songs.length + 1,
         });
@@ -145,7 +125,11 @@ export default function PlaylistDetail() {
   };
 
   const handleAddContributor = async (email: string) => {
-    if (user && id) {
+    if (!user) {
+      toast.error("You must be logged in to add a member.");
+      return;
+    }
+    if (email.trim() && user) {
       const toastId = toast.loading("Adding contributor...");
       try {
         // Check if the user exists
@@ -158,26 +142,75 @@ export default function PlaylistDetail() {
           return;
         }
 
-        const contributorsRef = collection(
-          db,
-          "users",
-          user.uid,
-          "playlists",
-          id as string,
-          "contributors"
-        );
-        await addDoc(contributorsRef, {
-          email,
-          addedAt: new Date(),
+        const playlistRef = doc(db, "playlists", id as string);
+        await updateDoc(playlistRef, {
+          contributors: arrayUnion(email),
         });
-        setIsAddContributorModalOpen(false);
+
         toast.success("Contributor added successfully!", { id: toastId });
       } catch (error) {
         console.error("Error adding contributor:", error);
         toast.error("Failed to add contributor", { id: toastId });
       }
+    } else {
+      toast.error("Email cannot be empty.");
     }
   };
+
+  // const handleAddMember = async (e: React.FormEvent) => {
+
+  //   toast.promise(
+  //     (async () => {
+  //       // Search for the user by email
+  //       const usersRef = collection(db, "users");
+  //       const userQuery = query(usersRef, where("email", "==", memberUid));
+  //       const userSnap = await getDocs(userQuery);
+
+  //       if (userSnap.empty) {
+  //         throw new Error("The specified user does not exist.");
+  //       }
+
+  //       const userDoc = userSnap.docs[0];
+  //       const memberUIDFetched = userDoc.id;
+
+  //       // Check if a chat already exists
+  //       const chatsRef = collection(db, "chats");
+  //       const chatQuery = query(
+  //         chatsRef,
+  //         where("type", "==", "private"),
+  //         where("participants", "array-contains", currentUser.uid)
+  //       );
+  //       const chatsSnap = await getDocs(chatQuery);
+
+  //       const chatExists = chatsSnap.docs.some((doc) => {
+  //         const participants = doc.data().participants;
+  //         return participants.includes(memberUIDFetched);
+  //       });
+
+  //       if (chatExists) {
+  //         throw new Error("A chat with this member already exists.");
+  //       }
+
+  //       // Create a new chat document
+  //       await addDoc(chatsRef, {
+  //         type: "private",
+  //         participants: [currentUser.uid, memberUIDFetched],
+  //         createdAt: serverTimestamp(),
+  //         lastMessageTime: serverTimestamp(),
+  //         lastMessage: "",
+  //         name: memberUid, // Set a default or dynamic chat name
+  //       });
+
+  //       setMemberUid(""); // Clear input
+  //     })(),
+  //     {
+  //       loading: "Adding member...",
+  //       success: "Member added successfully!",
+  //       error: (err: Error) =>
+  //         err.message || "Failed to add member. Please try again.",
+  //     }
+  //   );
+  // };
 
   const handlePlayPause = () => {
     if (audioRef.current) {
@@ -224,23 +257,9 @@ export default function PlaylistDetail() {
     if (user && id) {
       const toastId = toast.loading("Deleting song...");
       try {
-        const songRef = doc(
-          db,
-          "users",
-          user.uid,
-          "playlists",
-          id as string,
-          "songs",
-          songId
-        );
+        const songRef = doc(db, "playlists", id as string, "songs", songId);
         await deleteDoc(songRef);
-        const playlistRef = doc(
-          db,
-          "users",
-          user.uid,
-          "playlists",
-          id as string
-        );
+        const playlistRef = doc(db, "playlists", id as string);
         await updateDoc(playlistRef, {
           songs: songs.length - 1,
         });
