@@ -72,27 +72,20 @@ export default function CreatePlaylistModal({
                 value={playlistName}
                 onChange={(e) => setPlaylistName(e.target.value)}
                 placeholder="Enter playlist name"
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 mb-4"
+                className="input input-bordered input-primary w-full max-w-xs mb-2"
                 required
               />
               <div className="flex justify-end space-x-2">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  type="button"
+                <button
                   onClick={onClose}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  type="button"
+                  className="btn btn-ghost"
                 >
                   Cancel
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                >
+                </button>
+                <button type="submit" className="btn btn-primary">
                   Create
-                </motion.button>
+                </button>
               </div>
             </form>
           </motion.div>

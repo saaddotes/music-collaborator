@@ -36,17 +36,8 @@ export default function Playlist({ id, name, songCount }: PlaylistProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: isHovered ? 1 : 0 }}
         transition={{ duration: 0.2 }}
-        className="absolute inset-0 bg-purple-600 bg-opacity-90 flex items-center justify-center space-x-4"
+        className="absolute inset-0 bg-gradient-to-r  from-transparent to-purple-300 bg-opacity-90 flex items-center justify-end pe-5"
       >
-        <Link href={`/playlist/${id}`}>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="bg-white text-purple-600 p-3 rounded-full"
-          >
-            <Play className="w-6 h-6" />
-          </motion.button>
-        </Link>
         <Link href={`/playlist/${id}`}>
           <motion.button
             whileHover={{ scale: 1.1 }}

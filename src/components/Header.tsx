@@ -21,63 +21,39 @@ export default function Header() {
     <motion.header
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      transition={{ type: "spring", stiffness: 100, damping: 15 }}
+      transition={{ duration: 0.5 }}
       className="bg-purple-800 text-white p-4 shadow-lg"
     >
       <div className="container mx-auto flex justify-between items-center">
         <Link href="/" className="text-2xl font-bold">
-          <motion.span
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            Music Collaborator
-          </motion.span>
+          Music Collaborator
         </Link>
         <nav>
-          <motion.ul
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="flex space-x-4"
-          >
+          <ul className="flex space-x-4 items-center">
             {loading ? (
               <li>Loading...</li>
             ) : user ? (
               <>
                 <li>Welcome, {user.email}</li>
                 <li>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                  <button
                     onClick={handleSignOut}
-                    className="hover:text-purple-300 transition duration-300"
+                    className="btn btn-outline text-white"
                   >
                     Sign Out
-                  </motion.button>
+                  </button>
                 </li>
               </>
             ) : (
               <>
                 <li>
-                  <Link
-                    href="/login"
-                    className="hover:text-purple-300 transition duration-300"
-                  >
+                  <Link href="/login" className="btn btn-ghost text-lg">
                     Login
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/signup"
-                    className="hover:text-purple-300 transition duration-300"
-                  >
-                    Sign Up
                   </Link>
                 </li>
               </>
             )}
-          </motion.ul>
+          </ul>
         </nav>
       </div>
     </motion.header>

@@ -14,15 +14,17 @@ import {
   where,
   getDocs,
   arrayUnion,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import useAuth from "@/hooks/useAuth";
-import Header from "@/components/Header";
 import AddSongModal from "@/components/AddSongModal";
 import AddContributorModal from "@/components/AddContributorModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, SkipForward, SkipBack, Trash2, Home } from "lucide-react";
 import { toast } from "react-hot-toast";
+import Loading from "@/components/Loading";
+import CustomAlert from "@/components/CustomAlert";
 
 interface Song {
   id: string;
@@ -48,6 +50,7 @@ export default function PlaylistDetail() {
   const { user } = useAuth();
   const [playlist, setPlaylist] = useState<PlaylistData | null>(null);
   const [songs, setSongs] = useState<Song[] | []>([]);
+  const [songsLoading, setSongsLoading] = useState(false);
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [isAddSongModalOpen, setIsAddSongModalOpen] = useState(false);
   const [isAddContributorModalOpen, setIsAddContributorModalOpen] =
@@ -55,6 +58,19 @@ export default function PlaylistDetail() {
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [songsAlert, setSongsAlert] = useState(false);
+  const [selectedId, setSelectedId] = useState("");
+  const [usersAlert, setUsersAlert] = useState(false);
+
+  function confrimSongs() {
+    handleDeleteSong(selectedId);
+  }
+
+  function confrimUsers() {
+    handleDeleteUser(selectedId);
+  }
+
+  // const [alertFunc, setAltFunc] = useState(() => console.log("Testing"));
 
   useEffect(() => {
     if (user && id) {
@@ -148,6 +164,7 @@ export default function PlaylistDetail() {
         });
 
         toast.success("Contributor added successfully!", { id: toastId });
+        setIsAddContributorModalOpen(false);
       } catch (error) {
         console.error("Error adding contributor:", error);
         toast.error("Failed to add contributor", { id: toastId });
@@ -156,61 +173,6 @@ export default function PlaylistDetail() {
       toast.error("Email cannot be empty.");
     }
   };
-
-  // const handleAddMember = async (e: React.FormEvent) => {
-
-  //   toast.promise(
-  //     (async () => {
-  //       // Search for the user by email
-  //       const usersRef = collection(db, "users");
-  //       const userQuery = query(usersRef, where("email", "==", memberUid));
-  //       const userSnap = await getDocs(userQuery);
-
-  //       if (userSnap.empty) {
-  //         throw new Error("The specified user does not exist.");
-  //       }
-
-  //       const userDoc = userSnap.docs[0];
-  //       const memberUIDFetched = userDoc.id;
-
-  //       // Check if a chat already exists
-  //       const chatsRef = collection(db, "chats");
-  //       const chatQuery = query(
-  //         chatsRef,
-  //         where("type", "==", "private"),
-  //         where("participants", "array-contains", currentUser.uid)
-  //       );
-  //       const chatsSnap = await getDocs(chatQuery);
-
-  //       const chatExists = chatsSnap.docs.some((doc) => {
-  //         const participants = doc.data().participants;
-  //         return participants.includes(memberUIDFetched);
-  //       });
-
-  //       if (chatExists) {
-  //         throw new Error("A chat with this member already exists.");
-  //       }
-
-  //       // Create a new chat document
-  //       await addDoc(chatsRef, {
-  //         type: "private",
-  //         participants: [currentUser.uid, memberUIDFetched],
-  //         createdAt: serverTimestamp(),
-  //         lastMessageTime: serverTimestamp(),
-  //         lastMessage: "",
-  //         name: memberUid, // Set a default or dynamic chat name
-  //       });
-
-  //       setMemberUid(""); // Clear input
-  //     })(),
-  //     {
-  //       loading: "Adding member...",
-  //       success: "Member added successfully!",
-  //       error: (err: Error) =>
-  //         err.message || "Failed to add member. Please try again.",
-  //     }
-  //   );
-  // };
 
   const handlePlayPause = () => {
     if (audioRef.current) {
@@ -277,15 +239,35 @@ export default function PlaylistDetail() {
         toast.error("Failed to delete song", { id: toastId });
       }
     }
+    setSongsAlert(false);
+  };
+
+  const handleDeleteUser = async (userEmail: string) => {
+    if (user && id) {
+      const toastId = toast.loading("Deleting user...");
+      const playlistRef = doc(db, "playlists", id as string);
+      const data = await getDoc(playlistRef);
+      try {
+        const users = data.data()?.contributors;
+        const filteredUsers = users?.filter(
+          (email: string) => email != userEmail
+        );
+        await updateDoc(playlistRef, { contributors: filteredUsers });
+        toast.success("User deleted successfully!", { id: toastId });
+      } catch (error) {
+        toast.success("Failed to delete user!", { id: toastId });
+      }
+    }
+
+    setUsersAlert(false);
   };
 
   if (!playlist) {
-    return <div>Loading...</div>;
+    return <Loading />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-400 to-indigo-600">
-      <Header />
+    <>
       <main className="container mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -293,101 +275,15 @@ export default function PlaylistDetail() {
           className="flex justify-between items-center mb-6"
         >
           <h1 className="text-4xl font-bold text-white">{playlist.name}</h1>
-          <Link href="/">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-100 transition duration-300 flex items-center"
-            >
-              <Home className="mr-2" /> Back to Home
-            </motion.button>
+          <Link href="/" className="btn my-3">
+            <Home className="mr-2" /> Back to Home
           </Link>
         </motion.div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <motion.section
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <h2 className="text-2xl font-semibold text-white mb-4">Songs</h2>
-            <button
-              onClick={() => setIsAddSongModalOpen(true)}
-              className="bg-white text-purple-600 px-4 py-2 rounded-lg mb-4 hover:bg-purple-100 transition duration-300"
-            >
-              Add Song
-            </button>
-            <ul className="bg-white rounded-lg shadow-lg p-4">
-              <AnimatePresence>
-                {songs.map((song) => (
-                  <motion.li
-                    key={song.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="border-b last:border-b-0 py-2 flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="font-semibold">{song.title}</p>
-                      <p className="text-sm text-gray-600">{song.artist}</p>
-                      <p className="text-xs text-gray-500">
-                        Added by: {song.addedBy}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleSongSelect(song)}
-                        className="text-purple-600 hover:text-purple-800"
-                      >
-                        <Play size={20} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSong(song.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <Trash2 size={20} />
-                      </button>
-                    </div>
-                  </motion.li>
-                ))}
-              </AnimatePresence>
-            </ul>
-          </motion.section>
-          <motion.section
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <h2 className="text-2xl font-semibold text-white mb-4">
-              Contributors
-            </h2>
-            <button
-              onClick={() => setIsAddContributorModalOpen(true)}
-              className="bg-white text-purple-600 px-4 py-2 rounded-lg mb-4 hover:bg-purple-100 transition duration-300"
-            >
-              Add Contributor
-            </button>
-            <ul className="bg-white rounded-lg shadow-lg p-4">
-              <AnimatePresence>
-                {contributors.map((contributor) => (
-                  <motion.li
-                    key={contributor.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="border-b last:border-b-0 py-2"
-                  >
-                    {contributor.email}
-                  </motion.li>
-                ))}
-              </AnimatePresence>
-            </ul>
-          </motion.section>
-        </div>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="mt-8 bg-white rounded-lg shadow-lg p-4"
+          className="mb-8 bg-white rounded-lg shadow-lg p-4"
         >
           <h2 className="text-2xl font-semibold mb-4">Now Playing</h2>
           {currentSong ? (
@@ -419,18 +315,150 @@ export default function PlaylistDetail() {
             <p>No song selected</p>
           )}
         </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <motion.section
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-lg shadow-lg p-4"
+          >
+            <div className="flex justify-between items-center border-b-2 mb-1">
+              <h2 className="text-2xl font-semibold text-slate-500">Songs</h2>
+              <button
+                onClick={() => setIsAddSongModalOpen(true)}
+                className="btn text-purple-600 my-3"
+              >
+                Add Song
+              </button>
+            </div>
+            {songsLoading ? (
+              <Loading />
+            ) : (
+              <div>
+                {songs.length > 0 ? (
+                  <ul>
+                    <AnimatePresence>
+                      {songs.map((song) => (
+                        <motion.li
+                          key={song.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          className="border-b last:border-b-0 flex justify-between items-center bg-white rounded-lg shadow-lg p-4 my-2"
+                        >
+                          <div>
+                            <p className="font-semibold">{song.title}</p>
+                            <p className="text-sm text-gray-600">
+                              {song.artist}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Added by: {song.addedBy}
+                            </p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleSongSelect(song)}
+                              className="text-purple-600 hover:text-purple-800"
+                            >
+                              <Play size={20} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedId(song?.id);
+                                setSongsAlert(true);
+                              }}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <Trash2 size={20} />
+                            </button>
+                          </div>
+                        </motion.li>
+                      ))}
+                    </AnimatePresence>
+                  </ul>
+                ) : (
+                  <span>No Songs Available</span>
+                )}
+              </div>
+            )}
+          </motion.section>
+          <motion.section
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white rounded-lg shadow-lg p-4"
+          >
+            <div className="flex justify-between items-center border-b-2 mb-1">
+              <h2 className="text-2xl font-semibold text-slate-500">
+                Contributors
+              </h2>
+              <button
+                onClick={() => setIsAddContributorModalOpen(true)}
+                className="btn text-purple-600 my-3"
+              >
+                Add Contributors
+              </button>
+            </div>
+            <ul>
+              <AnimatePresence>
+                {contributors.map((contributor) => (
+                  <motion.li
+                    key={contributor.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="border-b last:border-b-0 py-4 flex justify-between items-center bg-white rounded-lg shadow-lg p-4 my-2"
+                  >
+                    <span>{contributor.email}</span>
+                    <span>
+                      {user?.email == contributor.email ? (
+                        "admin"
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedId(contributor?.email);
+                            setUsersAlert(true);
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      )}
+                    </span>
+                  </motion.li>
+                ))}
+              </AnimatePresence>
+            </ul>
+          </motion.section>
+        </div>
+
+        <AddSongModal
+          isOpen={isAddSongModalOpen}
+          onClose={() => setIsAddSongModalOpen(false)}
+          onAddSong={handleAddSong}
+        />
+
+        <CustomAlert
+          isOpen={songsAlert}
+          onClose={() => setSongsAlert(false)}
+          message={"Do you want to delete this song?"}
+          onConfrim={confrimSongs}
+        />
+
+        <CustomAlert
+          isOpen={usersAlert}
+          message={"Do you want to delete this user?"}
+          onClose={() => setUsersAlert(false)}
+          onConfrim={confrimUsers}
+        />
+
+        <AddContributorModal
+          isOpen={isAddContributorModalOpen}
+          onClose={() => setIsAddContributorModalOpen(false)}
+          onAddContributor={handleAddContributor}
+        />
+        <audio ref={audioRef} onEnded={handleNextSong} />
       </main>
-      <AddSongModal
-        isOpen={isAddSongModalOpen}
-        onClose={() => setIsAddSongModalOpen(false)}
-        onAddSong={handleAddSong}
-      />
-      <AddContributorModal
-        isOpen={isAddContributorModalOpen}
-        onClose={() => setIsAddContributorModalOpen(false)}
-        onAddContributor={handleAddContributor}
-      />
-      <audio ref={audioRef} onEnded={handleNextSong} />
-    </div>
+    </>
   );
 }
