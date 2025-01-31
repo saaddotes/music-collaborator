@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 
 interface ModelProps {
   isOpen: boolean;
-  message: String;
+  message: string;
   onClose: () => void;
   onConfrim: () => void;
 }

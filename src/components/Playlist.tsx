@@ -2,17 +2,38 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Music, Play, Plus } from "lucide-react";
+import { Music, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 interface PlaylistProps {
   id: string;
   name: string;
   songCount: number;
+  deletePlaylist: (id: string) => void;
 }
 
-export default function Playlist({ id, name, songCount }: PlaylistProps) {
+export default function Playlist({
+  id,
+  name,
+  songCount,
+  deletePlaylist,
+}: PlaylistProps) {
   const [isHovered, setIsHovered] = useState(false);
+
+  // async function deletePlaylist(id: string) {
+  //   try {
+  //     // toast.loading("Adding song...");
+  //     const playlistDoc = doc(db, "playlists", id);
+  //     await deleteDoc(playlistDoc)
+  //       .then(() => toast.success("Successful Removed"))
+  //       .catch((e) => {
+  //         toast.error("Error while removing");
+  //         console.log(e.message);
+  //       });
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // }
 
   return (
     <motion.div
@@ -36,18 +57,46 @@ export default function Playlist({ id, name, songCount }: PlaylistProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: isHovered ? 1 : 0 }}
         transition={{ duration: 0.2 }}
-        className="absolute inset-0 bg-gradient-to-r  from-transparent to-purple-300 bg-opacity-90 flex items-center justify-end pe-5"
+        className="absolute inset-0 bg-gradient-to-r from-transparent to-purple-300 bg-opacity-90 flex gap-2 items-center justify-end pe-5"
       >
         <Link href={`/playlist/${id}`}>
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            className="bg-white text-purple-600 p-3 rounded-full"
+            className="text-purple-400 bg-white  p-3 rounded-full"
           >
             <Plus className="w-6 h-6" />
           </motion.button>
         </Link>
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => deletePlaylist(id)}
+          className="text-red-600 bg-white  p-3 rounded-full"
+        >
+          <Trash2 size={20} />
+        </motion.button>
       </motion.div>
+
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent to-purple-300 bg-opacity-90 flex md:hidden gap-2 items-center justify-end pe-5">
+        <Link href={`/playlist/${id}`}>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="text-purple-400 bg-white  p-3 rounded-full"
+          >
+            <Plus className="w-6 h-6" />
+          </motion.button>
+        </Link>
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => deletePlaylist(id)}
+          className="text-red-600 bg-white  p-3 rounded-full"
+        >
+          <Trash2 size={20} />
+        </motion.button>
+      </div>
     </motion.div>
   );
 }

@@ -50,7 +50,7 @@ export default function PlaylistDetail() {
   const { user } = useAuth();
   const [playlist, setPlaylist] = useState<PlaylistData | null>(null);
   const [songs, setSongs] = useState<Song[] | []>([]);
-  const [songsLoading, setSongsLoading] = useState(false);
+  const [songsLoading] = useState(false);
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [isAddSongModalOpen, setIsAddSongModalOpen] = useState(false);
   const [isAddContributorModalOpen, setIsAddContributorModalOpen] =
@@ -256,6 +256,7 @@ export default function PlaylistDetail() {
         toast.success("User deleted successfully!", { id: toastId });
       } catch (error) {
         toast.success("Failed to delete user!", { id: toastId });
+        console.log(error);
       }
     }
 
@@ -268,7 +269,7 @@ export default function PlaylistDetail() {
 
   return (
     <>
-      <main className="container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

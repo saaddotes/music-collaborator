@@ -22,7 +22,7 @@ export default function Header() {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-purple-800 text-white p-4 shadow-lg"
+      className="sticky top-0 bg-purple-800 text-white p-4 shadow-lg"
     >
       <div className="container mx-auto flex justify-between items-center">
         <Link href="/" className="text-2xl font-bold">
@@ -34,7 +34,7 @@ export default function Header() {
               <li>Loading...</li>
             ) : user ? (
               <>
-                <li>Welcome, {user.email}</li>
+                <li className="hidden md:block">Welcome, {user.email}</li>
                 <li>
                   <button
                     onClick={handleSignOut}

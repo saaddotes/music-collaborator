@@ -7,18 +7,21 @@ import {
   getDocs,
   query,
   orderBy,
-  limit,
+  // limit,
   where,
+  doc,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import useAuth from "@/hooks/useAuth";
-import Header from "@/components/Header";
+// import Header from "@/components/Header";
 import Playlist from "@/components/Playlist";
 import CreatePlaylistModal from "@/components/CreatePlaylistModal";
 import SearchBar from "@/components/SearchBar";
-import RecentlyPlayed from "@/components/RecentlyPlayed";
-import { Toaster } from "react-hot-toast";
+// import RecentlyPlayed from "@/components/RecentlyPlayed";
+// import { Toaster } from "react-hot-toast";
 import Loading from "@/components/Loading";
+import toast from "react-hot-toast";
 
 interface PlaylistData {
   id: string;
@@ -56,6 +59,30 @@ export default function Home() {
     }
     setPlaylistLoading(false);
   };
+
+  async function deletePlaylist(id: string) {
+    try {
+      // toast.loading("Adding song...");
+
+      const playlistDoc = doc(db, "playlists", id);
+      await deleteDoc(playlistDoc)
+        .then(() => {
+          toast.success("Successful Removed");
+          const updatedPlaylists = playlists.filter(
+            (playlist) => playlist.id != id
+          );
+          setPlaylists([...updatedPlaylists]);
+          setFilteredPlaylists([...updatedPlaylists]);
+          console.log(updatedPlaylists);
+        })
+        .catch((e) => {
+          toast.error("Error while removing");
+          console.log(e.message);
+        });
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   useEffect(() => {
     if (!loading) {
@@ -119,15 +146,8 @@ export default function Home() {
         transition={{ duration: 0.5 }}
         className="mb-12"
       >
-        <h2 className="text-3xl font-bold text-white mb-4">Your Music Hub</h2>
-        <div className="flex space-x-4 mb-4 items-center">
+        <div className="flex flex-col md:flex-row space-y-3 space-x-4 mb-4 items-center">
           <SearchBar onSearch={handleSearch} />
-          <button
-            className="btn btn-primary"
-            onClick={() => setIsCreateModalOpen(true)}
-          >
-            Create New Playlist
-          </button>
         </div>
       </motion.section>
 
@@ -136,7 +156,15 @@ export default function Home() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <h2 className="text-3xl font-bold text-white mb-4">Your Playlists</h2>
+        <div className="flex justify-between items-center my-3">
+          <h2 className="text-3xl font-bold text-white">Your Playlists</h2>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setIsCreateModalOpen(true)}
+          >
+            Create New Playlist
+          </button>
+        </div>
         {playlistLoading ? (
           <Loading />
         ) : (
@@ -154,6 +182,7 @@ export default function Home() {
                     id={playlist.id}
                     name={playlist.name}
                     songCount={playlist.songs}
+                    deletePlaylist={deletePlaylist}
                   />
                 </motion.div>
               ))}

@@ -67,7 +67,7 @@ export default function AddSongModal({
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50"
+                  className="input input-bordered input-primary w-full max-w-xs"
                   required
                 />
               </div>
@@ -83,7 +83,7 @@ export default function AddSongModal({
                   id="artist"
                   value={artist}
                   onChange={(e) => setArtist(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50"
+                  className="input input-bordered input-primary w-full max-w-xs"
                   required
                 />
               </div>
@@ -99,7 +99,7 @@ export default function AddSongModal({
                   id="url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50"
+                  className="input input-bordered input-primary w-full max-w-xs"
                   required
                 />
               </div>
