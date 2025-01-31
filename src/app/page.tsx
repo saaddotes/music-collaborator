@@ -7,19 +7,15 @@ import {
   getDocs,
   query,
   orderBy,
-  // limit,
   where,
   doc,
   deleteDoc,
 } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import useAuth from "@/hooks/useAuth";
-// import Header from "@/components/Header";
 import Playlist from "@/components/Playlist";
 import CreatePlaylistModal from "@/components/CreatePlaylistModal";
 import SearchBar from "@/components/SearchBar";
-// import RecentlyPlayed from "@/components/RecentlyPlayed";
-// import { Toaster } from "react-hot-toast";
 import Loading from "@/components/Loading";
 import toast from "react-hot-toast";
 
@@ -62,8 +58,6 @@ export default function Home() {
 
   async function deletePlaylist(id: string) {
     try {
-      // toast.loading("Adding song...");
-
       const playlistDoc = doc(db, "playlists", id);
       await deleteDoc(playlistDoc)
         .then(() => {
@@ -96,26 +90,6 @@ export default function Home() {
     );
     setFilteredPlaylists(filtered);
   };
-
-  // const handleCreatePlaylist = async (name: string) => {
-  //   if (user) {
-  //     const playlistsCollection = collection(db, "playlists");
-  //     const playlistsSnapshot = await getDocs(
-  //       query(
-  //         playlistsCollection,
-  //         where("contributors", "array-contains", user.email),
-  //         orderBy("createdAt", "desc")
-  //       )
-  //     );
-  //     const playlistsData = playlistsSnapshot.docs.map((doc) => ({
-  //       id: doc.id,
-  //       ...doc.data(),
-  //     })) as PlaylistData[];
-
-  //     setPlaylists(playlistsData);
-  //     setFilteredPlaylists(playlistsData);
-  //   }
-  // };
 
   if (loading) {
     return <Loading />;

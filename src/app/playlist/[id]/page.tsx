@@ -70,8 +70,6 @@ export default function PlaylistDetail() {
     handleDeleteUser(selectedId);
   }
 
-  // const [alertFunc, setAltFunc] = useState(() => console.log("Testing"));
-
   useEffect(() => {
     if (user && id) {
       const playlistRef = doc(db, "playlists", id as string);
@@ -148,7 +146,6 @@ export default function PlaylistDetail() {
     if (email.trim() && user) {
       const toastId = toast.loading("Adding contributor...");
       try {
-        // Check if the user exists
         const usersRef = collection(db, "users");
         const q = query(usersRef, where("email", "==", email));
         const querySnapshot = await getDocs(q);

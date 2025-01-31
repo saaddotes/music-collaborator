@@ -20,21 +20,6 @@ export default function Playlist({
 }: PlaylistProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  // async function deletePlaylist(id: string) {
-  //   try {
-  //     // toast.loading("Adding song...");
-  //     const playlistDoc = doc(db, "playlists", id);
-  //     await deleteDoc(playlistDoc)
-  //       .then(() => toast.success("Successful Removed"))
-  //       .catch((e) => {
-  //         toast.error("Error while removing");
-  //         console.log(e.message);
-  //       });
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
-
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}

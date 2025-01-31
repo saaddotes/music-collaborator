@@ -57,7 +57,6 @@ export default function Login() {
             Sigup
           </button>
         </div>
-        {/* <h2 className="text-2xl font-bold mb-4">Login</h2> */}
         {error && <p className="text-red-500 mb-4">{error}</p>}
         <form onSubmit={isLogin ? handleLogin : handleSignup}>
           {!isLogin && (
